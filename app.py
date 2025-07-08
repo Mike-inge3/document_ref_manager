@@ -15,7 +15,6 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Table des utilisateurs
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -24,7 +23,6 @@ def init_db():
         )
     ''')
 
-    # Table des références (nom modifié)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS document_refs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +32,6 @@ def init_db():
         )
     ''')
 
-    # Pré-remplissage des utilisateurs
     users = [
         ('aa', 'aapass', 'user'),
         ('mi', 'mipass', 'user'),
@@ -99,7 +96,11 @@ def new_ref():
     cursor = conn.cursor()
     cursor.execute('SELECT MAX(ref_number) FROM document_refs')
     max_ref = cursor.fetchone()[0]
-    next_ref = (max_ref + 1) if max_ref else 2448
+
+    # Debug print dans console serveur
+    print(f"DEBUG - max_ref: {max_ref}")
+
+    next_ref = (max_ref + 1) if max_ref is not None else 2448
 
     cursor.execute('INSERT INTO document_refs (ref_number, username, date) VALUES (?, ?, ?)',
                    (next_ref, session['username'], datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
