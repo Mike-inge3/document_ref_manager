@@ -1,14 +1,41 @@
 <!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connexion - Gestion Référence</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background: #f8f9fa;
+      padding-top: 80px;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+    }
+  </style>
+</head>
 <body>
-<h2>Login</h2>
-<form method="post">
-    <label>Utilisateur:</label>
-    <input type="text" name="username"><br><br>
-    <label>Mot de passe:</label>
-    <input type="password" name="password"><br><br>
-    <input type="submit" value="Connexion">
-</form>
+  <div class="login-container">
+    <h2 class="mb-4 text-center">Connexion</h2>
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <div class="mb-3">
+        <label for="username" class="form-label">Utilisateur</label>
+        <input type="text" class="form-control" id="username" name="username" required autofocus />
+      </div>
+      <div class="mb-4">
+        <label for="password" class="form-label">Mot de passe</label>
+        <input type="password" class="form-control" id="password" name="password" required />
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+    </form>
+  </div>
 </body>
 </html>

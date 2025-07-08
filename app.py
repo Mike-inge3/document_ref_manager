@@ -9,12 +9,14 @@ DATABASE = 'users.db'
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row  # pour accès par nom colonnes
     return conn
 
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
+    # Table utilisateurs
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -23,6 +25,7 @@ def init_db():
         )
     ''')
 
+    # Table références
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS document_refs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +35,7 @@ def init_db():
         )
     ''')
 
+    # Utilisateurs par défaut
     users = [
         ('aa', 'aapass', 'user'),
         ('mi', 'mipass', 'user'),
@@ -47,6 +51,41 @@ def init_db():
     conn.close()
 
 @app.route('/', methods=['GET', 'POST'])
+def home():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT MAX(ref_number) FROM document_refs')
+    max_ref = cursor.fetchone()[0]
+    next_ref = (max_ref + 1) if max_ref is not None else 2448
+
+    if request.method == 'POST':
+        # Générer et enregistrer le nouveau numéro
+        cursor.execute('INSERT INTO document_refs (ref_number, username, date) VALUES (?, ?, ?)',
+                       (next_ref, session['username'], datetime.now().strftime('%d/%m/%Y %H:%M:%S')))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('home'))
+
+    conn.close()
+    return render_template('home.html', username=session['username'], next_ref=next_ref)
+
+@app.route('/list')
+def list_refs():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT ref_number, username, date FROM document_refs ORDER BY id DESC')
+    refs = cursor.fetchall()
+    conn.close()
+
+    return render_template('list.html', refs=refs)
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -60,54 +99,12 @@ def login():
 
         if user:
             session['username'] = username
-            session['role'] = user[2]
-            return redirect(url_for('dashboard'))
+            session['role'] = user['role']
+            return redirect(url_for('home'))
         else:
-            return render_template('login.html', error='Invalid credentials')
+            return render_template('login.html', error='Identifiants incorrects')
 
     return render_template('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    return render_template('dashboard.html', username=session['username'], role=session['role'])
-
-@app.route('/list')
-def list_refs():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM document_refs ORDER BY id DESC')
-    refs = cursor.fetchall()
-    conn.close()
-
-    return render_template('list.html', refs=refs, role=session['role'])
-
-@app.route('/new')
-def new_ref():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT MAX(ref_number) FROM document_refs')
-    max_ref = cursor.fetchone()[0]
-
-    # Debug print dans console serveur
-    print(f"DEBUG - max_ref: {max_ref}")
-
-    next_ref = (max_ref + 1) if max_ref is not None else 2448
-
-    cursor.execute('INSERT INTO document_refs (ref_number, username, date) VALUES (?, ?, ?)',
-                   (next_ref, session['username'], datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('list_refs'))
 
 @app.route('/logout')
 def logout():
